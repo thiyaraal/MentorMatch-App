@@ -1,0 +1,222 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserType {
+  Admin
+  PendingMentor
+  Mentor
+  Mentee
+  RejectedMentor
+}
+
+enum Gender {
+  Pria
+  Wanita
+}
+
+model User {
+  id            String        @id @default(uuid()) @db.VarChar(64)
+  userType      UserType?
+  email         String        @unique @db.VarChar(255)
+  name          String        @db.VarChar(255)
+  skills        String[]
+  gender        Gender?
+  location      String?
+  linkedin      String?
+  portofolio    String?
+  photoUrl      String        @db.VarChar(255)
+  about         String?
+  communities   Community[]
+  experiences   Experience[]
+  class         Class[]
+  session       Session[]
+  transactions  Transaction[]
+  participant   Participant[]
+  menteeReviews Review[]      @relation("MenteeReviews")
+  mentorReviews Review[]      @relation("MentorReviews")
+
+  accountNumber String?        @map("account_number") @db.VarChar(64)
+  accountName   String?        @map("account_name") @db.VarChar(64)
+  Feedback      Feedback[]
+  rejectReason  String?        @map("reject_reason") @db.VarChar(255)
+  fcmToken      String?        @db.VarChar(255)
+  notification  Notification[]
+
+  @@map("users")
+}
+
+// review 
+
+model Review {
+  id         String @id @default(uuid()) @db.VarChar(64)
+  reviewerId String @map("reviewer_id") @db.VarChar(64)
+  mentorId   String @map("mentor_id") @db.VarChar(64)
+  classId    String @map("class_id") @db.VarChar(64)
+  content    String @db.Text
+
+  reviewer User  @relation("MenteeReviews", fields: [reviewerId], references: [id])
+  mentor   User  @relation("MentorReviews", fields: [mentorId], references: [id])
+  class    Class @relation(fields: [classId], references: [id])
+
+  @@map("reviews")
+}
+
+model Session {
+  id              String        @id @default(uuid()) @db.VarChar(64)
+  mentorId        String        @map("mentor_id") @db.VarChar(64)
+  mentor          User          @relation(fields: [mentorId], references: [id])
+  title           String        @db.VarChar(255)
+  description     String        @db.Text
+  category        String        @db.VarChar(64)
+  dateTime        DateTime      @map("date_time")
+  startTime       DateTime      @map("start_time")
+  endTime         DateTime      @map("end_time")
+  maxParticipants Int           @map("max_participants")
+  isActive        Boolean       @default(true) @map("is_active")
+  zoomLink        String?       @map("zoom_link") @db.VarChar(255)
+  participant     Participant[]
+
+  @@map("sessions")
+}
+
+model Participant {
+  sessionId String  @map("session_id") @db.VarChar(64)
+  userId    String  @map("user_id") @db.VarChar(64)
+  user      User    @relation(fields: [userId], references: [id])
+  session   Session @relation(fields: [sessionId], references: [id])
+
+  @@id([sessionId, userId])
+  @@map("participants")
+}
+
+model Community {
+  id       String @id @default(uuid()) @db.VarChar(64)
+  adminId  String @map("admin_id") @db.VarChar(64)
+  admin    User   @relation(fields: [adminId], references: [id])
+  name     String @db.VarChar(64)
+  link     String
+  imageUrl String @map("image_url") @db.VarChar(255)
+
+  @@map("communities")
+}
+
+model Evaluation {
+  id        String     @id @default(uuid()) @db.VarChar(64)
+  classId   String     @map("class_id") @db.VarChar(64)
+  class     Class      @relation(fields: [classId], references: [id])
+  createdAt DateTime   @default(now()) @map("created_at")
+  topic     String     @db.VarChar(64)
+  link      String     @db.VarChar(255)
+  feedbacks Feedback[]
+
+  @@map("evaluations")
+}
+
+model Feedback {
+  id           String @id @default(uuid()) @db.VarChar(64)
+  evaluationId String @map("evaluation_id") @db.VarChar(64)
+  menteeId     String @map("mentee_id") @db.VarChar(64)
+  content      String @db.Text
+  result       Int    @default(0)
+
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id])
+  mentee     User       @relation(fields: [menteeId], references: [id])
+
+  @@map("feedbacks")
+}
+
+model Experience {
+  id           String  @id @default(uuid()) @db.VarChar(64)
+  userId       String  @map("user_id") @db.VarChar(64)
+  user         User    @relation(fields: [userId], references: [id])
+  isCurrentJob Boolean @map("is_current_job")
+  company      String  @db.VarChar(64)
+  jobTitle     String  @map("job_title") @db.VarChar(64)
+
+  @@map("experiences")
+}
+
+model Class {
+  id               String             @id @default(uuid()) @db.VarChar(64)
+  mentorId         String             @map("mentor_id") @db.VarChar(64)
+  mentor           User               @relation(fields: [mentorId], references: [id])
+  educationLevel   String             @map("education_level") @db.VarChar(64)
+  category         String             @db.VarChar(64)
+  name             String             @db.VarChar(64)
+  description      String             @db.Text
+  terms            String[]
+  targetLearning   String[]
+  price            Int
+  isActive         Boolean            @default(false) @map("is_active")
+  isAvailable      Boolean            @default(false) @map("is_available")
+  isVerified       Boolean            @default(false) @map("is_verified")
+  startDate        DateTime           @map("start_date")
+  endDate          DateTime           @map("end_date")
+  schedule         String             @db.VarChar(64)
+  durationInDays   Int                @map("duration_in_days")
+  location         String             @db.VarChar(64)
+  address          String?            @db.VarChar(255)
+  maxParticipants  Int                @map("max_participants")
+  zoomLink         String?            @map("zoom_link") @db.VarChar(255)
+  evaluations      Evaluation[]
+  transactions     Transaction[]
+  learningMaterial LearningMaterial[]
+  rejectReason     String?            @map("reject_reason") @db.VarChar(255)
+  Review           Review[]
+
+  @@map("classes")
+}
+
+model LearningMaterial {
+  id      String @id @default(uuid()) @db.VarChar(64)
+  classId String @map("class_id") @db.VarChar(64)
+  class   Class  @relation(fields: [classId], references: [id])
+  title   String @db.VarChar(64)
+  link    String @db.VarChar(255)
+
+  @@map("learning_materials")
+}
+
+model Transaction {
+  id            String        @id @default(uuid()) @db.VarChar(64)
+  classId       String        @map("class_id") @db.VarChar(64)
+  class         Class         @relation(fields: [classId], references: [id])
+  createdAt     DateTime      @default(now()) @map("created_at")
+  uniqueCode    Int           @unique @map("unique_code")
+  paymentStatus PaymentStatus @default(Pending) @map("payment_status")
+  expired       DateTime      @default(dbgenerated("NOW() + interval '1 day'"))
+  User          User          @relation(fields: [userId], references: [id])
+  userId        String        @db.VarChar(64)
+  rejectReason  String?       @map("reject_reason") @db.VarChar(255)
+
+  @@map("transactions")
+}
+
+enum PaymentStatus {
+  Pending
+  Approved
+  Expired
+  Rejected
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.VarChar(64)
+  userId    String   @map("user_id") @db.VarChar(64)
+  title     String   @db.VarChar(64)
+  content   String   @db.Text
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  User      User     @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}

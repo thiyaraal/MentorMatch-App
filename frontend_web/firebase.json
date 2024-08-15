@@ -1,0 +1,22 @@
+{
+	"hosting": {
+		"source": ".",
+		"ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+		"frameworksBackend": {
+			"region": "asia-east1"
+		},
+		"predeploy": ["flutter build web --web-renderer html"],
+
+		"headers": [
+			{
+				"source": "**/*.@(eot|otf|ttf|ttc|woff|font.css)",
+				"headers": [
+					{
+						"key": "Access-Control-Allow-Origin",
+						"value": "*"
+					}
+				]
+			}
+		]
+	}
+}
